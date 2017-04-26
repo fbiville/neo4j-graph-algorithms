@@ -30,7 +30,7 @@ public class BetweennessCentralityProc {
         final Graph graph = new GraphLoader(api)
                 .withOptionalLabel(label)
                 .withOptionalRelationshipType(relationship)
-                .withoutWeights()
+                .withoutNodeProperties()
                 .load(HeavyGraphFactory.class);
 
         return new BetweennessCentrality(graph)
