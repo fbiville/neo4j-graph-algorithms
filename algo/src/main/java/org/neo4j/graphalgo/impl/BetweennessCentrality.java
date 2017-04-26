@@ -21,10 +21,10 @@ public class BetweennessCentrality {
     private final Graph graph;
 
     private final double[] centrality;
-    private final IntStack stack;
-    private final int[] sigma;
     private final double[] delta;
+    private final int[] sigma;
     private final int[] d;
+    private final IntStack stack;
     private final IntArrayDeque queue;
     private final Path[] paths;
 
@@ -39,14 +39,18 @@ public class BetweennessCentrality {
         delta = new double[graph.nodeCount()];
     }
 
+    /**
+     * compute centrality
+     * @return itself for method chaining
+     */
     public BetweennessCentrality compute() {
         graph.forEachNode(this::compute);
         return this;
     }
 
     /**
-     * iterate over each result until every node has visited or
-     * the consumer returns false;
+     * iterate over each result until every node has
+     * been visited or the consumer returns false
      *
      * @param consumer the result consumer
      */
@@ -66,36 +70,40 @@ public class BetweennessCentrality {
                                 centrality[nodeId]));
     }
 
-    private void compute(int node) {
+    private void compute(int startNode) {
         clearPaths();
         stack.clear();
         queue.clear();
         Arrays.fill(sigma, 0);
         Arrays.fill(delta, 0);
         Arrays.fill(d, -1);
-        sigma[node] = 1;
-        d[node] = 0;
-        queue.addLast(node);
+        sigma[startNode] = 1;
+        d[startNode] = 0;
+        queue.addLast(startNode);
         while (!queue.isEmpty()) {
-            int v = queue.removeLast();
-            stack.push(v);
-            graph.forEachRelationship(v, Direction.OUTGOING, (source, target, relationId) -> {
+            int node = queue.removeLast();
+            stack.push(node);
+            graph.forEachRelationship(node, Direction.OUTGOING, (source, target, relationId) -> {
                 if (d[target] < 0) {
                     queue.addLast(target);
-                    d[target] = d[v] + 1;
-                } else if (d[target] == d[v] + 1) {
-                    sigma[target] += sigma[v];
-                    append(target, v);
+                    d[target] = d[node] + 1;
+                }
+                if (d[target] == d[node] + 1) {
+                    sigma[target] += sigma[node];
+                    append(target, node);
                 }
                 return true;
             });
         }
         while (!stack.isEmpty()) {
-            final int w = stack.pop();
-            paths[w].forEch(v -> {
-                delta[v] += (double) sigma[v] / ((double) sigma[w]) * (delta[w] + 1.0);
-                if (w != node) {
-                    centrality[w] += delta[w];
+            final int node = stack.pop();
+            if (null == paths[node]) {
+                continue;
+            }
+            paths[node].forEch(v -> {
+                delta[v] += (double) sigma[v] / (double) sigma[node] * (delta[node] + 1.0);
+                if (node != startNode) {
+                    centrality[node] += delta[node];
                 }
                 return true;
             });

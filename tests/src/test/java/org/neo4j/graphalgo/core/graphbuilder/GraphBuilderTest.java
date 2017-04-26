@@ -19,10 +19,11 @@ public class GraphBuilderTest extends Neo4JTestCase{
     public void testRingBuilder() throws Exception {
 
         Runnable mock = mock(Runnable.class);
-        new RingBuilder((GraphDatabaseAPI) db)
+        GraphBuilder.create((GraphDatabaseAPI) db)
+                .newRingBuilder()
                 .setRelationship(RELATION)
                 .createRing(10)
-                .forEachNode(node -> {
+                .forEachInTx(node -> {
                     assertEquals(2, node.getDegree());
                     mock.run();
                 });
