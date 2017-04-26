@@ -24,6 +24,10 @@ public class GraphSetup {
     public final String nodeWeightPropertyName;
     // default property is used for weighted nodes if property is not set.
     public final double nodeDefaultWeight;
+    // additional node property. null means NO property (the default value will be used instead).
+    public final String nodePropertyName;
+    // default property is used for node properties if property is not set.
+    public final double nodeDefaultPropertyValue;
 
     // the executor service for parallel execution. null means single threaded evaluation.
     @Deprecated
@@ -40,6 +44,9 @@ public class GraphSetup {
      * @param nodeWeightPropertyName property name which holds the weights / costs of a node.
      *                               null means the default value is used for each weight.
      * @param nodeDefaultWeight the default node weight if property is not given.
+     * @param nodePropertyName property name which holds additional values of a node.
+     *                         null means the default value is used for each value.
+     * @param nodeDefaultPropertyValue the default node value if property is not given.
      * @param executor the executor. null means single threaded evaluation
      */
     public GraphSetup(
@@ -50,6 +57,8 @@ public class GraphSetup {
             double relationDefaultWeight,
             String nodeWeightPropertyName,
             double nodeDefaultWeight,
+            String nodePropertyName,
+            double nodeDefaultPropertyValue,
             ExecutorService executor) {
 
         this.startLabel = startLabel;
@@ -59,6 +68,8 @@ public class GraphSetup {
         this.relationDefaultWeight = relationDefaultWeight;
         this.nodeWeightPropertyName = nodeWeightPropertyName;
         this.nodeDefaultWeight = nodeDefaultWeight;
+        this.nodePropertyName = nodePropertyName;
+        this.nodeDefaultPropertyValue = nodeDefaultPropertyValue;
         this.executor = executor;
     }
 
@@ -73,6 +84,8 @@ public class GraphSetup {
         this.relationDefaultWeight = 1.0;
         this.nodeWeightPropertyName = null;
         this.nodeDefaultWeight = 1.0;
+        this.nodePropertyName = null;
+        this.nodeDefaultPropertyValue = 1.0;
         this.executor = null;
     }
 
@@ -90,6 +103,8 @@ public class GraphSetup {
         this.relationDefaultWeight = 1.0;
         this.nodeWeightPropertyName = null;
         this.nodeDefaultWeight = 1.0;
+        this.nodePropertyName = null;
+        this.nodeDefaultPropertyValue = 1.0;
         this.executor = executor;
     }
 
@@ -103,6 +118,10 @@ public class GraphSetup {
 
     public boolean loadDefaultNodeWeight() {
         return nodeWeightPropertyName == null;
+    }
+
+    public boolean loadDefaultNodeProperty() {
+        return nodePropertyName == null;
     }
 
     public boolean loadAnyLabel() {
