@@ -35,10 +35,12 @@ public class GraphLoader {
     private String label = null;
     private String relation = null;
     private String relWeightProp = null;
+    private String nodeWeightProp = null;
 
     private final GraphDatabaseAPI api;
     private ExecutorService executorService;
     private double relWeightDefault = 0.0;
+    private double nodeWeightDefault = 0.0;
 
     /**
      * Creates a new serial GraphLoader.
@@ -198,6 +200,34 @@ public class GraphLoader {
     }
 
     /**
+     * Instructs the loader to load node weights by reading the given property.
+     * If the property is not set, the propertyDefaultValue is used instead.
+     *
+     * @param property May not be null; to remove a weight property, use {@link #withoutNodeWeights()} instead.
+     * @param propertyDefaultValue the default value to use if property is not set
+     * @return itself to enable fluent interface
+     */
+    public GraphLoader withNodeWeightsFromProperty(String property, double propertyDefaultValue) {
+        this.nodeWeightProp = Objects.requireNonNull(property);
+        this.nodeWeightDefault = propertyDefaultValue;
+        return this;
+    }
+
+    /**
+     * Instructs the loader to load node weights by reading the given property.
+     * If the property is not set at the relationship, the propertyDefaultValue is used instead.
+     *
+     * @param property May be null
+     * @param propertyDefaultValue the default value to use if property is not set
+     * @return itself to enable fluent interface
+     */
+    public GraphLoader withOptionalNodeWeightsFromProperty(String property, double propertyDefaultValue) {
+        this.nodeWeightProp = property;
+        this.nodeWeightDefault = propertyDefaultValue;
+        return this;
+    }
+
+    /**
      * Instructs the loader to not load any relationship weights. Instead each weight is set
      * to propertyDefaultValue.
      *
@@ -211,6 +241,19 @@ public class GraphLoader {
     }
 
     /**
+     * Instructs the loader to not load any node weights. Instead each weight is set
+     * to propertyDefaultValue.
+     *
+     * @param propertyDefaultValue the default value.
+     * @return itself to enable fluent interface
+     */
+    public GraphLoader withDefaultNodeWeight(double propertyDefaultValue) {
+        this.nodeWeightProp = null;
+        this.nodeWeightDefault = propertyDefaultValue;
+        return this;
+    }
+
+    /**
      * Instructs the loader to not load any weights. The behavior of using weighted graph-functions
      * on a graph without weights is not specified.
      *
@@ -219,6 +262,17 @@ public class GraphLoader {
     public GraphLoader withoutRelationshipWeights() {
         this.relWeightProp = null;
         this.relWeightDefault = 0.0;
+        return this;
+    }
+
+    /**
+     * Instructs the loader to not load any node weights.
+     *
+     * @return itself to enable fluent interface
+     */
+    public GraphLoader withoutNodeWeights() {
+        this.nodeWeightProp = null;
+        this.nodeWeightDefault = 0.0;
         return this;
     }
 
@@ -252,6 +306,8 @@ public class GraphLoader {
                 relation,
                 relWeightProp,
                 relWeightDefault,
+                nodeWeightProp,
+                nodeWeightDefault,
                 executorService);
 
         try {
