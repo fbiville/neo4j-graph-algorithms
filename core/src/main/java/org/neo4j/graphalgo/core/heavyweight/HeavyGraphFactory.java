@@ -36,6 +36,8 @@ public class HeavyGraphFactory extends GraphFactory {
 
     private final ExecutorService threadPool;
     private int relWeightId;
+    private int nodeWeightId;
+    private int nodePropId;
     private int labelId;
     private int[] relationId;
     private int nodeCount;
@@ -59,6 +61,12 @@ public class HeavyGraphFactory extends GraphFactory {
             relWeightId = setup.loadDefaultRelationshipWeight()
                     ? StatementConstants.NO_SUCH_PROPERTY_KEY
                     : readOp.propertyKeyGetForName(setup.relationWeightPropertyName);
+            nodeWeightId = setup.loadDefaultNodeWeight()
+                    ? StatementConstants.NO_SUCH_PROPERTY_KEY
+                    : readOp.propertyKeyGetForName(setup.nodeWeightPropertyName);
+            nodePropId = setup.loadDefaultNodeProperty()
+                    ? StatementConstants.NO_SUCH_PROPERTY_KEY
+                    : readOp.propertyKeyGetForName(setup.nodePropertyName);
         });
     }
 
@@ -74,6 +82,14 @@ public class HeavyGraphFactory extends GraphFactory {
         final WeightMapping relWeigths = relWeightId == StatementConstants.NO_SUCH_PROPERTY_KEY
                 ? new NullWeightMap(setup.relationDefaultWeight)
                 : new WeightMap(nodeCount, setup.relationDefaultWeight);
+
+        final WeightMapping nodeWeights = nodeWeightId == StatementConstants.NO_SUCH_PROPERTY_KEY
+                ? new NullWeightMap(setup.nodeDefaultWeight)
+                : new WeightMap(nodeCount, setup.nodeDefaultWeight);
+
+        final WeightMapping nodeProps = nodePropId == StatementConstants.NO_SUCH_PROPERTY_KEY
+                ? new NullWeightMap(setup.nodeDefaultPropertyValue)
+                : new WeightMap(nodeCount, setup.nodeDefaultPropertyValue);
 
         int threads = (int) Math.ceil(nodeCount / (double) batchSize);
 
@@ -93,7 +109,17 @@ public class HeavyGraphFactory extends GraphFactory {
                         : readOp.nodeCursorGetForLabel(labelId)) {
                     while (cursor.next()) {
                         final NodeItem node = cursor.get();
-                        readNode(node, idMap, 0, matrix, relWeightId, relWeigths, relationId);
+                        readNode(node,
+                                idMap,
+                                0,
+                                matrix,
+                                relWeightId,
+                                relWeigths,
+                                nodeWeightId,
+                                nodeWeights,
+                                nodePropId,
+                                nodeProps,
+                                relationId);
                     }
                 }
             });
@@ -109,6 +135,8 @@ public class HeavyGraphFactory extends GraphFactory {
                             idMap,
                             nodeIds,
                             relWeigths,
+                            nodeWeights,
+                            nodeProps,
                             relationId
                     );
                     if (importTask.nodeCount > 0) {
@@ -122,7 +150,12 @@ public class HeavyGraphFactory extends GraphFactory {
                 matrix.addMatrix(task.matrix, task.nodeOffset, task.nodeCount);
             }
         }
-        return new HeavyGraph(idMap, matrix, relWeigths);
+        return new HeavyGraph(
+                idMap,
+                matrix,
+                relWeigths,
+                nodeWeights,
+                nodeProps);
     }
 
     private static void readNode(
@@ -132,6 +165,10 @@ public class HeavyGraphFactory extends GraphFactory {
             AdjacencyMatrix matrix,
             int relWeightId,
             WeightMapping relWeights,
+            int nodeWeightId,
+            WeightMapping nodeWeights,
+            int nodePropId,
+            WeightMapping nodeProps,
             int... relationType
     ) {
         final long originalNodeId = node.id();
@@ -151,6 +188,17 @@ public class HeavyGraphFactory extends GraphFactory {
             outCursor = node.relationships(Direction.OUTGOING, relationType);
             inCursor = node.relationships(Direction.INCOMING, relationType);
         }
+        try (Cursor<PropertyItem> weights = node.property(nodeWeightId)) {
+            if (weights.next()) {
+                nodeWeights.set(nodeId, weights.get().value());
+            }
+        }
+        try (Cursor<PropertyItem> props = node.property(nodePropId)) {
+            if (props.next()) {
+                nodeProps.set(nodeId, props.get().value());
+            }
+        }
+
         matrix.armOut(nodeId, outDegree);
         try (Cursor<RelationshipItem> rels = outCursor) {
             while (rels.next()) {
@@ -226,6 +274,8 @@ public class HeavyGraphFactory extends GraphFactory {
         private final int nodeCount;
         private final IdMap idMap;
         private final WeightMapping relWeights;
+        private final WeightMapping nodeWeights;
+        private final WeightMapping nodeProps;
         private final int[] relationId;
 
         ImportTask(
@@ -233,10 +283,14 @@ public class HeavyGraphFactory extends GraphFactory {
                 IdMap idMap,
                 PrimitiveLongIterator nodes,
                 WeightMapping relWeights,
+                WeightMapping nodeWeights,
+                WeightMapping nodeProps,
                 int... relationId) {
             this.idMap = idMap;
             this.nodeOffset = idMap.size();
             this.relWeights = relWeights;
+            this.nodeWeights = nodeWeights;
+            this.nodeProps = nodeProps;
             this.relationId = relationId;
             int i;
             for (i = 0; i < batchSize && nodes.hasNext(); i++) {
@@ -267,6 +321,10 @@ public class HeavyGraphFactory extends GraphFactory {
                                 matrix,
                                 relWeightId,
                                 relWeights,
+                                nodeWeightId,
+                                nodeWeights,
+                                nodePropId,
+                                nodeProps,
                                 relationId);
                     }
                 }
